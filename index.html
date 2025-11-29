@@ -92,7 +92,6 @@
                 </li>
                 <li class="nav-item" data-page="forms"><i class="fas fa-edit w-5 mr-3"></i>Data Input Forms</li>
                 <li class="nav-item" data-page="records"><i class="fas fa-table w-5 mr-3"></i>All Records</li>
-                <li class="nav-item" data-page="orders"><i class="fas fa-box-open w-5 mr-3"></i>Track Orders</li>
                 <li class="nav-item" data-page="reports"><i class="fas fa-file-alt w-5 mr-3"></i>System Report</li>
             </ul>
         </nav>
@@ -110,11 +109,33 @@
     </div>
 
     <script>
-        // Global Data Stores (Now loaded from localStorage)
-        let seedLots = JSON.parse(localStorage.getItem('seedLots')) || [];
-        let fertilizerApplications = JSON.parse(localStorage.getItem('fertilizerApplications')) || [];
+        // --- Initial Mock Data (used if localStorage is empty) ---
+        const DEFAULT_SEED_LOTS = [
+            { id: 'seed-1', seedType: 'Hybrid Corn', lotNumber: 'C-2024-H01', germinationRate: 98, dateAcquired: '2024-03-15', recordedBy: 'Initial Data', timestamp: '2024-03-15T10:00:00Z' },
+            { id: 'seed-2', seedType: 'Soybean (Roundup Ready)', lotNumber: 'S-2024-B03', germinationRate: 92, dateAcquired: '2024-04-01', recordedBy: 'Initial Data', timestamp: '2024-04-01T10:00:00Z' },
+            { id: 'seed-3', seedType: 'Winter Wheat', lotNumber: 'W-2023-F12', germinationRate: 85, dateAcquired: '2023-11-20', recordedBy: 'Initial Data', timestamp: '2023-11-20T10:00:00Z' },
+            { id: 'seed-4', seedType: 'Hybrid Corn', lotNumber: 'C-2025-H02', germinationRate: 97, dateAcquired: '2025-01-05', recordedBy: 'Initial Data', timestamp: '2025-01-05T10:00:00Z' },
+        ];
+
+        const DEFAULT_FERT_APPS = [
+            { id: 'fert-1', fertilizerName: '15-15-15 NPK', fieldId: 'Field A-1', dosage: 150, applicationDate: '2024-05-10', recordedBy: 'Initial Data', timestamp: '2024-05-10T12:00:00Z' },
+            { id: 'fert-2', fertilizerName: 'Urea (46-0-0)', fieldId: 'Field B-2', dosage: 80, applicationDate: '2024-06-25', recordedBy: 'Initial Data', timestamp: '2024-06-25T12:00:00Z' },
+            { id: 'fert-3', fertilizerName: 'Potash (0-0-60)', fieldId: 'Field A-1', dosage: 50, applicationDate: '2024-07-01', recordedBy: 'Initial Data', timestamp: '2024-07-01T12:00:00Z' },
+            { id: 'fert-4', fertilizerName: '10-20-10 NPK', fieldId: 'Field C-3', dosage: 175, applicationDate: '2025-02-15', recordedBy: 'Initial Data', timestamp: '2025-02-15T12:00:00Z' },
+        ];
+        
+        // Global Data Stores (Now loaded from localStorage or initialized with defaults)
+        let seedLots = JSON.parse(localStorage.getItem('seedLots'));
+        let fertilizerApplications = JSON.parse(localStorage.getItem('fertilizerApplications'));
         let cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
-        let orders = JSON.parse(localStorage.getItem('orders')) || []; 
+        
+        // --- Data Persistence and Utilities (using localStorage) ---
+        
+        function saveData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+            // Re-render the current page to reflect changes instantly
+            renderPage(currentPage);
+        }
 
         // Configuration
         const PAGES = {
@@ -123,7 +144,6 @@
             CART: 'cart',
             FORMS: 'forms',
             RECORDS: 'records',
-            ORDERS: 'orders',
             REPORTS: 'reports',
         };
         
@@ -136,12 +156,27 @@
         ];
 
 
-        // --- Data Persistence and Utilities (using localStorage) ---
-
-        function saveData(key, data) {
-            localStorage.setItem(key, JSON.stringify(data));
-            // Re-render the current page to reflect changes instantly
-            renderPage(currentPage);
+        /**
+         * Checks localStorage for data and initializes with defaults if empty.
+         */
+        function initializeData() {
+            let dataInitialized = false;
+            
+            if (!seedLots || seedLots.length === 0) {
+                seedLots = DEFAULT_SEED_LOTS;
+                localStorage.setItem('seedLots', JSON.stringify(seedLots));
+                dataInitialized = true;
+            }
+            
+            if (!fertilizerApplications || fertilizerApplications.length === 0) {
+                fertilizerApplications = DEFAULT_FERT_APPS;
+                localStorage.setItem('fertilizerApplications', JSON.stringify(fertilizerApplications));
+                dataInitialized = true;
+            }
+            
+            if (dataInitialized) {
+                console.log("Local storage was empty. Initial data loaded for demonstration.");
+            }
         }
 
         /**
@@ -340,7 +375,7 @@
                 <h2 class="text-3xl font-bold text-agri-dark mb-8">Farm Analytics Dashboard</h2>
                 <div class="flex items-center p-3 mb-6 bg-agri-light rounded-xl shadow-inner text-agri-dark">
                     <i class="fas fa-info-circle mr-3"></i>
-                    <p class="text-sm font-medium">Data is stored locally in your browser's LocalStorage. Add records or place orders to update these metrics.</p>
+                    <p class="text-sm font-medium">Data is stored locally in your browser's LocalStorage. Initial records have been loaded. Add more records or place orders to update these metrics and charts.</p>
                 </div>
                 
                 <!-- Key Metrics Grid -->
@@ -465,29 +500,15 @@
             const paymentSuccess = Math.random() > 0.1; // 90% success rate
 
             if (paymentSuccess) {
-                const newOrder = {
-                    id: 'ORD-' + Math.random().toString(36).substring(2, 11).toUpperCase(),
-                    items: cartItems.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
-                    totalAmount: total,
-                    status: 'Processing',
-                    timestamp: new Date().toISOString(),
-                    paymentMethod: document.getElementById('payment-method').value,
-                    shippingAddress: document.getElementById('address').value
-                };
-                
-                // 1. Add the new order record
-                orders.unshift(newOrder); // Add to the beginning
-                saveData('orders', orders);
-
-                // 2. Clear the cart
+                // 1. Clear the cart
                 cartItems = [];
                 saveData('cartItems', cartItems);
                 
-                alertMessage(`Payment successful! Order for $${total.toFixed(2)} placed. Tracking information available under 'Track Orders'.`, 'success');
+                alertMessage(`Payment successful! $${total.toFixed(2)} charged. Transaction complete (Order not tracked).`, 'success');
                 
-                // Manually navigate to orders page after successful checkout
-                window.history.pushState({ page: PAGES.ORDERS }, '', `#${PAGES.ORDERS}`);
-                renderPage(PAGES.ORDERS); 
+                // Manually navigate back to the Marketplace after successful checkout
+                window.history.pushState({ page: PAGES.MARKETPLACE }, '', `#${PAGES.MARKETPLACE}`);
+                renderPage(PAGES.MARKETPLACE); 
 
             } else {
                 alertMessage('Payment failed: Card declined or service error. Please try again.', 'error');
@@ -565,66 +586,6 @@
             window.updateQuantity = updateQuantity;
             window.removeItem = removeItem;
             window.processPayment = processPayment;
-        }
-
-        // --- Order Tracking Functions ---
-        
-        function renderOrders() {
-            const contentDiv = document.getElementById('page-content');
-            
-            const orderCardsHtml = orders.length > 0 ? orders.map((order, index) => {
-                // Mock Status Update for better tracking feel
-                let status = order.status;
-                if (index === 0) status = 'Shipped'; // Latest order is often shipped
-                if (index >= 2) status = 'Delivered'; // Older orders are delivered
-
-                const statusColor = status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                                    status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-yellow-100 text-yellow-800';
-                
-                const itemsHtml = order.items.map(item => `
-                    <li class="flex justify-between text-sm text-gray-600 border-b border-dashed border-gray-200 py-1">
-                        <span>${item.name} x ${item.quantity}</span>
-                        <span>$${(item.price * item.quantity).toFixed(2)}</span>
-                    </li>
-                `).join('');
-
-                return `
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-agri-green">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-agri-dark">Order #${order.id.substring(4)}</h3>
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full ${statusColor}">${status}</span>
-                        </div>
-                        
-                        <p class="text-sm text-gray-500 mb-3">Placed: ${new Date(order.timestamp).toLocaleDateString()} at ${new Date(order.timestamp).toLocaleTimeString()}</p>
-                        <p class="text-sm text-gray-500 mb-3">Ship to: ${order.shippingAddress || 'N/A'}</p>
-
-
-                        <div class="space-y-2 mb-4">
-                            <p class="text-lg font-semibold text-agri-green">Items:</p>
-                            <ul class="space-y-1 pl-1">
-                                ${itemsHtml}
-                            </ul>
-                        </div>
-
-                        <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-                            <p class="text-lg font-bold text-gray-600">Total:</p>
-                            <p class="text-2xl font-extrabold text-agri-dark">$${order.totalAmount.toFixed(2)}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('') : '<p class="text-center py-10 text-gray-500 italic">You have no orders yet. Place an order in the Marketplace!</p>';
-
-            contentDiv.innerHTML = `
-                <h2 class="text-3xl font-bold text-agri-dark mb-8">Order History & Tracking</h2>
-                <div class="flex items-center p-3 mb-6 bg-agri-light rounded-xl shadow-inner text-agri-dark">
-                    <i class="fas fa-truck mr-3"></i>
-                    <p class="text-sm font-medium">Your placed orders are tracked here using your browser's local storage.</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    ${orderCardsHtml}
-                </div>
-            `;
         }
 
         // --- Data Input Forms, Records, Reports ---
@@ -751,7 +712,7 @@
                 <h2 class="text-3xl font-bold text-agri-dark mb-8">All System Records</h2>
                 <div class="flex items-center p-3 mb-6 bg-agri-light rounded-xl shadow-inner text-agri-dark">
                     <i class="fas fa-database mr-3"></i>
-                    <p class="text-sm font-medium">All records are pulled from your browser's LocalStorage.</p>
+                    <p class="text-sm font-medium">All records are pulled from your browser's LocalStorage. The initial demonstration data is now included.</p>
                 </div>
 
                 <!-- Seed Lots Table -->
@@ -826,8 +787,8 @@
         function renderReports() {
             const reportSections = [
                 { title: "1. Introduction", content: "The Seeds and Fertilizer Management System (SFMS) is now running as a pure client-side application using JavaScript." },
-                { title: "2. Data Flow and Storage", content: "All application data, including farm records, shopping cart contents, and order history, is stored entirely in the browser's `localStorage`. This provides persistence across sessions but is not shared between different browsers or devices." },
-                { title: "3. Simulated Functionality", content: "The Marketplace, Cart management, and Checkout process are fully simulated using client-side logic. The payment process includes a mock 90% success rate, clearing the cart and creating a new order record in `localStorage` upon success." },
+                { title: "2. Data Flow and Storage", content: "All application data, including farm records and shopping cart contents, is stored entirely in the browser's \`localStorage\`. This provides persistence across sessions but is not shared between different browsers or devices." },
+                { title: "3. Simulated Functionality", content: "The Marketplace, Cart management, and Checkout process are fully simulated using client-side logic. Upon successful mock payment, the cart is cleared and a confirmation message is displayed, but the order is *not* tracked in this simplified version." },
                 { title: "4. Technical Stack", content: "The system is built using HTML5, Tailwind CSS for aesthetics and responsiveness, and Vanilla JavaScript for all logic, state management, and DOM manipulation. Chart visualization is handled by Chart.js." },
             ];
             
@@ -918,9 +879,6 @@
                 case PAGES.RECORDS:
                     renderRecords();
                     break;
-                case PAGES.ORDERS:
-                    renderOrders();
-                    break;
                 case PAGES.REPORTS:
                     renderReports();
                     break;
@@ -933,6 +891,9 @@
         }
 
         function initApp() {
+            // Check for and load initial data
+            initializeData();
+
             // Set up navigation listeners
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', (e) => {
