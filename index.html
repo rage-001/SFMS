@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seeds & Fertilizer Management System</title>
+    <title>Functional AgriSys Management Dashboard (Frontend Only)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN for visual charts -->
@@ -24,6 +24,9 @@
         
         /* Transition for smooth sidebar open/close */
         #sidebar { transition: transform 0.3s ease-in-out; }
+
+        /* Chart container height for consistent rendering */
+        .chart-container { height: 400px; }
 
         /* Media queries for responsiveness */
         @media (max-width: 768px) {
@@ -81,103 +84,134 @@
             
             <ul class="space-y-2 p-4 pt-0">
                 <li class="nav-item" data-page="dashboard"><i class="fas fa-chart-line w-5 mr-3"></i>Dashboard</li>
+                <li class="nav-item" data-page="marketplace"><i class="fas fa-store w-5 mr-3"></i>Marketplace</li>
+                <li class="nav-item relative" data-page="cart">
+                    <i class="fas fa-shopping-cart w-5 mr-3"></i>
+                    Shopping Cart
+                    <span id="cart-count-badge" class="absolute top-1 right-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full hidden">0</span>
+                </li>
                 <li class="nav-item" data-page="forms"><i class="fas fa-edit w-5 mr-3"></i>Data Input Forms</li>
+                <li class="nav-item" data-page="records"><i class="fas fa-table w-5 mr-3"></i>All Records</li>
+                <li class="nav-item" data-page="orders"><i class="fas fa-box-open w-5 mr-3"></i>Track Orders</li>
                 <li class="nav-item" data-page="reports"><i class="fas fa-file-alt w-5 mr-3"></i>System Report</li>
-                <li class="nav-item" data-page="design-docs"><i class="fas fa-project-diagram w-5 mr-3"></i>Design Diagrams</li>
             </ul>
-
-            <div class="p-6 border-t border-agri-green mt-4">
-                <p class="text-sm text-agri-light opacity-80">Quick Stats</p>
-                <div class="mt-2 text-xs">
-                    <p>Crops Tracked: <span class="font-bold text-agri-yellow">12</span></p>
-                    <p>Active Fields: <span class="font-bold text-agri-yellow">4</span></p>
-                    <p>Avg Germination: <span class="font-bold text-agri-yellow">92%</span></p>
-                </div>
-            </div>
         </nav>
 
         <!-- Main Content Area -->
         <main id="content" class="flex-1 overflow-y-auto p-4 md:p-8">
             <!-- Content will be injected here by JavaScript -->
             <div id="page-content">
-                <h2 class="text-3xl font-bold text-agri-dark mb-6">Loading...</h2>
+                <div class="flex flex-col items-center justify-center h-full">
+                    <i class="fas fa-tractor fa-spin text-5xl text-agri-green mb-4"></i>
+                    <p class="text-lg text-agri-dark">Initializing the system...</p>
+                </div>
             </div>
         </main>
     </div>
 
     <script>
-        // --- Configuration and Data ---
+        // Global Data Stores (Now loaded from localStorage)
+        let seedLots = JSON.parse(localStorage.getItem('seedLots')) || [];
+        let fertilizerApplications = JSON.parse(localStorage.getItem('fertilizerApplications')) || [];
+        let cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+        let orders = JSON.parse(localStorage.getItem('orders')) || []; 
+
+        // Configuration
         const PAGES = {
             DASHBOARD: 'dashboard',
+            MARKETPLACE: 'marketplace',
+            CART: 'cart',
             FORMS: 'forms',
+            RECORDS: 'records',
+            ORDERS: 'orders',
             REPORTS: 'reports',
-            DESIGN_DOCS: 'design-docs',
         };
+        
+        // Mock Product Data
+        const PRODUCTS = [
+            { id: 'cornseed', name: 'Premium Hybrid Corn Seed', description: 'High-yield, disease-resistant corn seed for optimal production.', price: 120, unit: 'bag', type: 'seed', icon: 'fas fa-seedling' },
+            { id: 'wheatseed', name: 'Winter Wheat Seed', description: 'Hardy variety, excellent for cold climates and early spring planting.', price: 95, unit: 'bag', type: 'seed', icon: 'fas fa-wheat-awn' },
+            { id: 'npkfert', name: '10-20-10 NPK Fertilizer', description: 'Balanced granular fertilizer for early stage growth and root development.', price: 45, unit: 'kg', type: 'fertilizer', icon: 'fas fa-flask' },
+            { id: 'ureafert', name: 'Urea Fertilizer (46-0-0)', description: 'High nitrogen source for mid-season vegetative growth.', price: 30, unit: 'kg', type: 'fertilizer', icon: 'fas fa-flask' },
+        ];
 
-        const mockData = {
-            seedQuality: {
-                totalLots: 15,
-                avgGermination: 0.92,
-                bestPerformer: "Corn 2024 (98%)"
-            },
-            fertilizerSchedule: {
-                pendingApplications: 3,
-                nextDate: "2025-05-10",
-                lastApplied: "Urea (2025-04-20)"
-            },
-            growthMonitoring: {
-                activeCrops: 4,
-                avgGrowthRate: "2.5 cm/day",
-                alertThresholds: 1
-            },
-            yieldData: {
-                // Ensure the value is space-separated for easy parsing
-                avgYield: "7.8 tons/hectare", 
-                lastCrop: "Wheat 2024",
-                comparisonChange: "+4%"
-            },
-            chartData: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-                growth: [5, 12, 28, 55, 70, 85], // Height (cm)
-                dosage: [100, 150, 150, 200, 200, 250], // NPK Dosage (kg/Ha)
-                yieldComparison: {
-                    labels: ['Wheat', 'Corn', 'Soybean'],
-                    current: [7.8, 11.2, 3.5],
-                    lastYear: [7.5, 10.8, 3.3]
-                }
-            }
-        };
 
-        // --- Utility Functions ---
+        // --- Data Persistence and Utilities (using localStorage) ---
+
+        function saveData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+            // Re-render the current page to reflect changes instantly
+            renderPage(currentPage);
+        }
 
         /**
-         * Initializes a Chart.js instance on the given canvas ID.
-         * Note: The old chart logic was flawed (only one chart could exist).
-         * This updated logic correctly destroys any existing chart on the canvas before creation.
-         * @param {string} canvasId - The ID of the canvas element.
-         * @param {string} type - 'bar' or 'line'.
-         * @param {string} label - Dataset label.
-         * @param {Array} labels - X-axis labels.
-         * @param {Array} data - Y-axis data.
-         * @param {string} color - Hex color for the fill/border.
+         * Updates the shopping cart badge count in the navigation.
          */
-        function initializeChart(canvasId, type, label, labels, data, color) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
+        function updateCartCount() {
+            const badge = document.getElementById('cart-count-badge');
+            if (badge) {
+                const count = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+                badge.textContent = count;
+                if (count > 0) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
+        /**
+         * Calculates mock data metrics based on current data stores.
+         * @returns {object} Calculated metrics for the dashboard.
+         */
+        function calculateMetrics() {
+            const metrics = {
+                totalSeedLots: seedLots.length,
+                totalFertApps: fertilizerApplications.length,
+                avgGermination: 0,
+                uniqueCrops: new Set(),
+                avgDosage: 0
+            };
+
+            // Seed Lot Metrics
+            if (seedLots.length > 0) {
+                const totalRate = seedLots.reduce((sum, lot) => sum + (lot.germinationRate || 0), 0);
+                metrics.avgGermination = (totalRate / seedLots.length).toFixed(1);
+                
+                seedLots.forEach(lot => {
+                    if (lot.seedType) metrics.uniqueCrops.add(lot.seedType);
+                });
+            }
+
+            // Fertilizer Metrics
+            if (fertilizerApplications.length > 0) {
+                const totalDosage = fertilizerApplications.reduce((sum, app) => sum + (app.dosage || 0), 0);
+                metrics.avgDosage = (totalDosage / fertilizerApplications.length).toFixed(0);
+            }
+
+            return metrics;
+        }
+
+        // --- Chart Generation ---
+
+        let chartInstances = {}; // Store chart instances to destroy them before re-creation
+
+        function initializeChart(canvasId, type, label, labels, dataSets, color) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
             
-            // Safely destroy existing chart instance on this canvas if it exists
-            const existingChart = Chart.getChart(canvasId);
-            if (existingChart) {
-                existingChart.destroy();
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
             }
 
             const chartConfig = {
                 type: type,
                 data: {
                     labels: labels,
-                    datasets: [{
+                    datasets: dataSets || [{
                         label: label,
-                        data: data,
-                        backgroundColor: color + '90', // Add some opacity
+                        data: dataSets ? null : [],
+                        backgroundColor: color + '90',
                         borderColor: color,
                         borderWidth: 2,
                         tension: type === 'line' ? 0.4 : 0,
@@ -198,102 +232,100 @@
                 }
             };
             
-            if (type === 'bar' && label.includes('Comparison')) {
-                 chartConfig.data.datasets = [
-                    {
-                        label: 'Current Year Yield (t/ha)',
-                        data: mockData.chartData.yieldComparison.current,
-                        backgroundColor: '#38761D', // agri-green
-                        borderColor: '#38761D',
-                        borderWidth: 1,
-                    },
-                    {
-                        label: 'Last Year Yield (t/ha)',
-                        data: mockData.chartData.yieldComparison.lastYear,
-                        backgroundColor: '#F9D749', // agri-yellow
-                        borderColor: '#F9D749',
-                        borderWidth: 1,
-                    }
-                ];
-                chartConfig.options.scales.x = {
-                    stacked: false,
-                };
-                chartConfig.options.scales.y = {
-                    stacked: false,
-                    beginAtZero: true
-                };
+            if (canvasId === 'germinationChart') {
+                const germinationData = {};
+                seedLots.forEach(lot => {
+                    const date = lot.dateAcquired || 'Unknown';
+                    germinationData[date] = (germinationData[date] || []).concat(lot.germinationRate);
+                });
+
+                const sortedDates = Object.keys(germinationData).sort();
+                const avgRates = sortedDates.map(date => 
+                    (germinationData[date].reduce((a, b) => a + b, 0) / germinationData[date].length).toFixed(1)
+                );
+
+                chartConfig.data.labels = sortedDates;
+                chartConfig.data.datasets = [{
+                    label: 'Avg. Germination Rate (%)',
+                    data: avgRates,
+                    backgroundColor: '#38761D90',
+                    borderColor: '#38761D',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 5,
+                }];
+            } else if (canvasId === 'dosageChart') {
+                const dosageData = {};
+                fertilizerApplications.forEach(app => {
+                    const month = (app.applicationDate || '2000-01-01').substring(0, 7);
+                    dosageData[month] = (dosageData[month] || []).concat(app.dosage);
+                });
+
+                const sortedMonths = Object.keys(dosageData).sort();
+                const totalDosages = sortedMonths.map(month => 
+                    dosageData[month].reduce((a, b) => a + b, 0)
+                );
+
+                chartConfig.data.labels = sortedMonths;
+                chartConfig.data.datasets = [{
+                    label: 'Total Fertilizer Dosage by Month (kg/Ha)',
+                    data: totalDosages,
+                    backgroundColor: '#F9D749',
+                    borderColor: '#F9D749',
+                    borderWidth: 1,
+                }];
             }
 
-            new Chart(ctx, chartConfig); // Create the new chart instance
+
+            chartInstances[canvasId] = new Chart(ctx.getContext('2d'), chartConfig);
         }
 
-        /**
-         * Renders the key metric cards for the dashboard.
-         */
-        function renderDashboardCards() {
+        // --- Page Content Functions ---
+
+        function renderDashboardCards(metrics) {
             const cards = [
                 {
-                    title: "Seed Quality Score",
-                    value: (mockData.seedQuality.avgGermination * 100).toFixed(0) + '%',
+                    title: "Total Seed Lots Tracked",
+                    value: metrics.totalSeedLots,
                     icon: 'fas fa-seedling',
-                    detail: `Best lot: ${mockData.seedQuality.bestPerformer}`,
+                    detail: `Tracking ${metrics.uniqueCrops.size} unique crop types.`,
                     color: 'bg-green-600'
                 },
                 {
-                    title: "Pending Fertilizer Applications",
-                    value: mockData.fertilizerSchedule.pendingApplications,
-                    icon: 'fas fa-flask',
-                    detail: `Next Application: ${mockData.fertilizerSchedule.nextDate}`,
-                    color: 'bg-yellow-600'
-                },
-                {
-                    title: "Avg. Crop Growth Rate",
-                    value: mockData.growthMonitoring.avgGrowthRate,
-                    icon: 'fas fa-chart-area',
-                    detail: `Active Fields: ${mockData.growthMonitoring.activeCrops}`,
+                    title: "Avg. Germination Rate (Latest)",
+                    value: metrics.avgGermination + '%',
+                    icon: 'fas fa-percent',
+                    detail: `Based on ${metrics.totalSeedLots} lot${metrics.totalSeedLots === 1 ? '' : 's'}.`,
                     color: 'bg-agri-dark'
                 },
                 {
-                    // Updated icon and color for yield/harvest theme
-                    title: "Estimated Yield (Avg.)",
-                    value: mockData.yieldData.avgYield,
-                    icon: 'fas fa-tractor',
-                    detail: `Last harvest change: ${mockData.yieldData.comparisonChange}`,
+                    title: "Total Fertilizer Applications",
+                    value: metrics.totalFertApps,
+                    icon: 'fas fa-flask',
+                    detail: `Avg dosage: ${metrics.avgDosage} kg/Ha.`,
+                    color: 'bg-yellow-600'
+                },
+                {
+                    title: "Shopping Cart Items",
+                    value: cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
+                    icon: 'fas fa-shopping-cart',
+                    detail: `Total value: $${cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}.`,
                     color: 'bg-orange-500' 
                 }
             ];
 
             return cards.map(card => {
-                let valueHTML;
-                
-                // Special handling for Estimated Yield to separate number and unit
-                if (card.title === "Estimated Yield (Avg.)") {
-                    const parts = card.value.split(' '); // ["7.8", "tons/hectare"]
-                    const num = parts[0];
-                    const unit = parts.slice(1).join(' ');
-                    
-                    // Render the number in 3xl and the unit slightly smaller in a new line
-                    valueHTML = `
-                        <p class="text-3xl font-extrabold text-gray-900 mt-1 leading-tight">${num}</p>
-                        <p class="text-xl font-bold text-gray-700 leading-snug">${unit}</p>
-                    `;
-                } else {
-                    // Default rendering for other cards
-                    valueHTML = `<p class="text-3xl font-extrabold text-gray-900 mt-1">${card.value}</p>`;
-                }
+                const valueHTML = `<p class="text-3xl font-extrabold text-gray-900 mt-1">${card.value}</p>`;
                 
                 return `
                     <div class="bg-white p-6 rounded-xl shadow-lg flex items-start space-x-4 transition transform hover:scale-[1.02]">
                         <div class="p-3 ${card.color} text-white rounded-full text-2xl shadow-md">
                             <i class="${card.icon}"></i>
                         </div>
-                        <!-- flex-1 and min-w-0 ensure text container takes space and wraps correctly -->
                         <div class="flex-1 min-w-0"> 
                             <p class="text-sm font-medium text-gray-500">${card.title}</p>
-                            
-                            <!-- Value/Unit rendering block -->
                             ${valueHTML}
-
                             <p class="text-xs text-gray-400 mt-2">${card.detail}</p>
                         </div>
                     </div>
@@ -301,115 +333,398 @@
             }).join('');
         }
 
-        // --- Page Content Functions ---
-
         function renderDashboard() {
+            const metrics = calculateMetrics();
             const contentDiv = document.getElementById('page-content');
             contentDiv.innerHTML = `
                 <h2 class="text-3xl font-bold text-agri-dark mb-8">Farm Analytics Dashboard</h2>
+                <div class="flex items-center p-3 mb-6 bg-agri-light rounded-xl shadow-inner text-agri-dark">
+                    <i class="fas fa-info-circle mr-3"></i>
+                    <p class="text-sm font-medium">Data is stored locally in your browser's LocalStorage. Add records or place orders to update these metrics.</p>
+                </div>
                 
                 <!-- Key Metrics Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                    ${renderDashboardCards()}
+                    ${renderDashboardCards(metrics)}
                 </div>
 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Crop Growth Monitoring Chart -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg h-96">
-                        <canvas id="growthChart"></canvas>
+                    <!-- Avg. Germination Rate Chart -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg chart-container">
+                        <canvas id="germinationChart"></canvas>
                     </div>
-                    <!-- Fertilizer Dosage Chart -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg h-96">
+                    <!-- Monthly Dosage Chart -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg chart-container">
                         <canvas id="dosageChart"></canvas>
-                    </div>
-                    <!-- Yield Comparison Chart -->
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg h-96">
-                        <canvas id="yieldChart"></canvas>
                     </div>
                 </div>
             `;
 
-            // Wait for elements to be in DOM before creating charts
             setTimeout(() => {
-                initializeChart(
-                    'growthChart', 
-                    'line', 
-                    'Crop Growth Monitoring (Sunflower Height in cm)', 
-                    mockData.chartData.labels, 
-                    mockData.chartData.growth, 
-                    '#38761D' // agri-green
-                );
-                initializeChart(
-                    'dosageChart', 
-                    'bar', 
-                    'Fertilizer Dosage Applied (NPK kg/Ha)', 
-                    mockData.chartData.labels, 
-                    mockData.chartData.dosage, 
-                    '#F9D749' // agri-yellow
-                );
-                initializeChart(
-                    'yieldChart', 
-                    'bar', 
-                    'Yield Comparison by Crop Type (tons/Ha)', 
-                    mockData.chartData.yieldComparison.labels, 
-                    mockData.chartData.current, 
-                    '#38761D' // agri-green for the bar
-                );
+                initializeChart('germinationChart', 'line', 'Avg. Germination Rate Over Time', [], null, '#38761D');
+                initializeChart('dosageChart', 'bar', 'Total Fertilizer Dosage by Month', [], null, '#F9D749');
             }, 50);
+        }
+
+        // --- Marketplace Functions ---
+        
+        function addToCart(productId) {
+            const product = PRODUCTS.find(p => p.id === productId);
+            if (!product) return;
+
+            const existingItem = cartItems.find(item => item.productId === productId);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+                alertMessage(`${product.name} quantity increased in cart!`, 'success');
+            } else {
+                cartItems.push({
+                    id: Math.random().toString(36).substring(2, 9), // Mock ID
+                    productId: product.id,
+                    name: product.name,
+                    price: product.price,
+                    unit: product.unit,
+                    quantity: 1,
+                    timestamp: new Date().toISOString()
+                });
+                alertMessage(`${product.name} added to cart!`, 'success');
+            }
+            
+            saveData('cartItems', cartItems);
+        }
+
+        function renderMarketplace() {
+            const contentDiv = document.getElementById('page-content');
+            contentDiv.innerHTML = `
+                <h2 class="text-3xl font-bold text-agri-dark mb-8">AgriSys Supply Marketplace</h2>
+                <div id="alert-container" class="mb-6"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    ${PRODUCTS.map(product => `
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-agri-yellow flex flex-col justify-between transition transform hover:scale-[1.03] hover:shadow-xl">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-xl font-semibold text-agri-dark">${product.name}</h3>
+                                    <i class="${product.icon} text-2xl text-agri-green"></i>
+                                </div>
+                                <p class="text-gray-600 mb-4 text-sm">${product.description}</p>
+                                <p class="text-3xl font-bold text-agri-yellow mb-4">
+                                    $${product.price.toFixed(2)} / ${product.unit}
+                                </p>
+                            </div>
+                            <button 
+                                onclick="window.addToCart('${product.id}')" 
+                                class="mt-4 w-full py-2 px-4 rounded-lg shadow-md text-sm font-medium text-white bg-agri-green hover:bg-agri-dark transition">
+                                <i class="fas fa-cart-plus mr-2"></i> Add to Cart
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+                <p class="text-center text-gray-400 mt-10">Total items in your cart: ${cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0)}</p>
+            `;
+            // Expose function globally for onclick to work
+            window.addToCart = addToCart;
+        }
+
+        // --- Cart Functions ---
+
+        function updateQuantity(itemId, change) {
+            const item = cartItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            item.quantity += change;
+
+            if (item.quantity <= 0) {
+                cartItems = cartItems.filter(i => i.id !== itemId);
+                alertMessage(`${item.name} removed from cart.`, 'success');
+            }
+            
+            saveData('cartItems', cartItems);
+        }
+        
+        function removeItem(itemId) {
+            const item = cartItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            cartItems = cartItems.filter(i => i.id !== itemId);
+            alertMessage(`${item.name} removed from cart.`, 'success');
+            
+            saveData('cartItems', cartItems);
+        }
+
+        function processPayment(event) {
+            event.preventDefault();
+            if (cartItems.length === 0) {
+                alertMessage('Your cart is empty!', 'error');
+                return;
+            }
+            
+            const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            // --- MOCK PAYMENT SIMULATION ---
+            const paymentSuccess = Math.random() > 0.1; // 90% success rate
+
+            if (paymentSuccess) {
+                const newOrder = {
+                    id: 'ORD-' + Math.random().toString(36).substring(2, 11).toUpperCase(),
+                    items: cartItems.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+                    totalAmount: total,
+                    status: 'Processing',
+                    timestamp: new Date().toISOString(),
+                    paymentMethod: document.getElementById('payment-method').value,
+                    shippingAddress: document.getElementById('address').value
+                };
+                
+                // 1. Add the new order record
+                orders.unshift(newOrder); // Add to the beginning
+                saveData('orders', orders);
+
+                // 2. Clear the cart
+                cartItems = [];
+                saveData('cartItems', cartItems);
+                
+                alertMessage(`Payment successful! Order for $${total.toFixed(2)} placed. Tracking information available under 'Track Orders'.`, 'success');
+                
+                // Manually navigate to orders page after successful checkout
+                window.history.pushState({ page: PAGES.ORDERS }, '', `#${PAGES.ORDERS}`);
+                renderPage(PAGES.ORDERS); 
+
+            } else {
+                alertMessage('Payment failed: Card declined or service error. Please try again.', 'error');
+            }
+        }
+
+        function renderCart() {
+            const contentDiv = document.getElementById('page-content');
+            const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const cartItemsHtml = cartItems.length > 0 ? cartItems.map(item => `
+                <li class="flex justify-between items-center py-4 border-b">
+                    <div class="flex-1">
+                        <p class="font-semibold text-agri-dark">${item.name}</p>
+                        <p class="text-sm text-gray-500">$${item.price.toFixed(2)} / ${item.unit}</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="window.updateQuantity('${item.id}', -1)" class="p-2 text-agri-dark border rounded-full hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed" ${item.quantity <= 1 ? 'disabled' : ''}><i class="fas fa-minus text-xs"></i></button>
+                        <span class="font-medium w-6 text-center">${item.quantity}</span>
+                        <button onclick="window.updateQuantity('${item.id}', 1)" class="p-2 text-agri-dark border rounded-full hover:bg-gray-100 transition"><i class="fas fa-plus text-xs"></i></button>
+                        <button onclick="window.removeItem('${item.id}')" class="p-2 text-red-500 hover:text-red-700 transition ml-4"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="font-bold text-lg w-20 text-right">$${(item.price * item.quantity).toFixed(2)}</div>
+                </li>
+            `).join('') : '<p class="text-center py-10 text-gray-500 italic">Your cart is empty! Time to stock up on supplies.</p>';
+
+            contentDiv.innerHTML = `
+                <h2 class="text-3xl font-bold text-agri-dark mb-8">Shopping Cart & Checkout</h2>
+                <div id="alert-container" class="mb-6"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Cart Items Column -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg h-min">
+                        <h3 class="text-2xl font-semibold mb-4 text-agri-green">Review Items (${cartItems.length})</h3>
+                        <ul>
+                            ${cartItemsHtml}
+                        </ul>
+                        <div class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+                            <p class="text-xl font-semibold text-gray-600">Subtotal:</p>
+                            <p class="text-3xl font-extrabold text-agri-dark">$${total.toFixed(2)}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Checkout Column -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-agri-green h-min">
+                        <h3 class="text-2xl font-semibold mb-4 text-agri-dark">Payment Details</h3>
+                        <form id="checkout-form" onsubmit="window.processPayment(event); return false;">
+                            
+                            <label for="name" class="block text-sm font-medium text-gray-700 mt-3">Full Name</label>
+                            <input id="name" type="text" value="Jane Doe" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50">
+                            
+                            <label for="address" class="block text-sm font-medium text-gray-700 mt-3">Shipping Address</label>
+                            <input id="address" type="text" value="123 Farm Rd, Rural Town" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50">
+
+                            <label for="payment-method" class="block text-sm font-medium text-gray-700 mt-3">Payment Method (Mock)</label>
+                            <select id="payment-method" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50">
+                                <option>Credit Card (Mock)</option>
+                                <option>Bank Transfer (Mock)</option>
+                            </select>
+
+                            <p class="text-sm text-gray-500 mt-6 p-3 bg-agri-light rounded-lg">
+                                Total Due: <span class="font-bold text-agri-dark text-lg">$${total.toFixed(2)}</span>
+                            </p>
+
+                            <button type="submit" ${cartItems.length === 0 ? 'disabled' : ''} 
+                                class="mt-6 w-full py-3 px-4 rounded-lg shadow-xl text-lg font-bold text-white transition 
+                                ${cartItems.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-agri-green hover:bg-agri-dark transform hover:scale-[1.01]'}">
+                                <i class="fas fa-credit-card mr-2"></i> Pay Now ($${total.toFixed(2)})
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            // Expose functions globally for onclick to work
+            window.updateQuantity = updateQuantity;
+            window.removeItem = removeItem;
+            window.processPayment = processPayment;
+        }
+
+        // --- Order Tracking Functions ---
+        
+        function renderOrders() {
+            const contentDiv = document.getElementById('page-content');
+            
+            const orderCardsHtml = orders.length > 0 ? orders.map((order, index) => {
+                // Mock Status Update for better tracking feel
+                let status = order.status;
+                if (index === 0) status = 'Shipped'; // Latest order is often shipped
+                if (index >= 2) status = 'Delivered'; // Older orders are delivered
+
+                const statusColor = status === 'Delivered' ? 'bg-green-100 text-green-800' :
+                                    status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-yellow-100 text-yellow-800';
+                
+                const itemsHtml = order.items.map(item => `
+                    <li class="flex justify-between text-sm text-gray-600 border-b border-dashed border-gray-200 py-1">
+                        <span>${item.name} x ${item.quantity}</span>
+                        <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                    </li>
+                `).join('');
+
+                return `
+                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-agri-green">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-agri-dark">Order #${order.id.substring(4)}</h3>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full ${statusColor}">${status}</span>
+                        </div>
+                        
+                        <p class="text-sm text-gray-500 mb-3">Placed: ${new Date(order.timestamp).toLocaleDateString()} at ${new Date(order.timestamp).toLocaleTimeString()}</p>
+                        <p class="text-sm text-gray-500 mb-3">Ship to: ${order.shippingAddress || 'N/A'}</p>
+
+
+                        <div class="space-y-2 mb-4">
+                            <p class="text-lg font-semibold text-agri-green">Items:</p>
+                            <ul class="space-y-1 pl-1">
+                                ${itemsHtml}
+                            </ul>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
+                            <p class="text-lg font-bold text-gray-600">Total:</p>
+                            <p class="text-2xl font-extrabold text-agri-dark">$${order.totalAmount.toFixed(2)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<p class="text-center py-10 text-gray-500 italic">You have no orders yet. Place an order in the Marketplace!</p>';
+
+            contentDiv.innerHTML = `
+                <h2 class="text-3xl font-bold text-agri-dark mb-8">Order History & Tracking</h2>
+                <div class="flex items-center p-3 mb-6 bg-agri-light rounded-xl shadow-inner text-agri-dark">
+                    <i class="fas fa-truck mr-3"></i>
+                    <p class="text-sm font-medium">Your placed orders are tracked here using your browser's local storage.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    ${orderCardsHtml}
+                </div>
+            `;
+        }
+
+        // --- Data Input Forms, Records, Reports ---
+        
+        function generateUniqueId(prefix) {
+            return prefix + '-' + Math.random().toString(36).substring(2, 9);
+        }
+
+        function handleFormSubmit(event, collectionName, dataArray) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {};
+            
+            Array.from(form.elements).forEach(element => {
+                if (element.name) {
+                    let value = element.value;
+                    if (element.type === 'number') {
+                        value = parseFloat(value);
+                    }
+                    if (value === 'None' || value === '') {
+                        value = null;
+                    }
+                    data[element.name] = value;
+                }
+            });
+
+            const newData = {
+                id: generateUniqueId(collectionName),
+                ...data,
+                timestamp: new Date().toISOString(),
+                recordedBy: 'Local User'
+            };
+            
+            // Update the correct global array
+            if (collectionName === 'seedLots') {
+                seedLots.push(newData);
+                saveData('seedLots', seedLots);
+            } else if (collectionName === 'fertilizerApplications') {
+                fertilizerApplications.push(newData);
+                saveData('fertilizerApplications', fertilizerApplications);
+            } else {
+                console.error("Unknown collection name:", collectionName);
+                alertMessage('Failed to save record: Unknown collection.', 'error');
+                return;
+            }
+            
+            form.reset();
+            alertMessage(`Successfully saved new ${collectionName.slice(0, -1)} record!`, 'success');
         }
 
         function renderForms() {
             const contentDiv = document.getElementById('page-content');
             contentDiv.innerHTML = `
                 <h2 class="text-3xl font-bold text-agri-dark mb-8">Data Input Forms</h2>
-                <p class="text-gray-600 mb-6">Use these forms to record vital data for accurate tracking and analysis.</p>
+                <div id="alert-container" class="mb-6"></div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    ${renderFormCard('Seed Input', 'fas fa-seedling', 'Record new seed batch data, including lot number, supplier, and initial germination test results.', [
-                        { label: "Seed Type", type: "text", placeholder: "e.g., Hybrid Corn" },
-                        { label: "Lot Number", type: "text", placeholder: "S-2025-CORN-005" },
-                        { label: "Germination Rate (%)", type: "number", placeholder: "95" },
-                        { label: "Date Acquired", type: "date" }
+                    ${renderFormCard('SeedLot', 'fas fa-seedling', 'Record new seed batch data, including lot number, supplier, and initial germination test results.', [
+                        { label: "Seed Type", name: "seedType", type: "text", placeholder: "e.g., Hybrid Corn" },
+                        { label: "Lot Number", name: "lotNumber", type: "text", placeholder: "S-2025-CORN-005" },
+                        { label: "Germination Rate (%)", name: "germinationRate", type: "number", min: 0, max: 100, placeholder: "95" },
+                        { label: "Date Acquired", name: "dateAcquired", type: "date" }
                     ])}
                     
-                    ${renderFormCard('Fertilizer Application', 'fas fa-flask', 'Log the type, quantity, and date of fertilizer applied to a specific field section.', [
-                        { label: "Fertilizer Name", type: "text", placeholder: "e.g., 10-20-10 NPK" },
-                        { label: "Field ID", type: "text", placeholder: "Field A-2" },
-                        { label: "Dosage (kg/Ha)", type: "number", placeholder: "180" },
-                        { label: "Application Date", type: "date" }
-                    ])}
-                    
-                    ${renderFormCard('Germination Tracking', 'fas fa-leaf', 'Monitor the progress of seed germination in the initial weeks.', [
-                        { label: "Crop Name", type: "text", placeholder: "Sunflower Batch 1" },
-                        { label: "Date of Measurement", type: "date" },
-                        { label: "Seedling Count / Area", type: "number", placeholder: "25 per sq meter" }
-                    ])}
-                    
-                    ${renderFormCard('Crop Growth Record', 'fas fa-chart-area', 'Input physical measurements like height, leaf count, or biomass.', [
-                        { label: "Crop Name", type: "text", placeholder: "Wheat Field B" },
-                        { label: "Measurement Date", type: "date" },
-                        { label: "Avg. Height (cm)", type: "number", placeholder: "65" },
-                        { label: "Pest/Disease Status", type: "select", options: ["None", "Minor", "Severe"] }
+                    ${renderFormCard('FertilizerApplication', 'fas fa-flask', 'Log the type, quantity, and date of fertilizer applied to a specific field section.', [
+                        { label: "Fertilizer Name", name: "fertilizerName", type: "text", placeholder: "e.g., 10-20-10 NPK" },
+                        { label: "Field ID", name: "fieldId", type: "text", placeholder: "Field A-2" },
+                        { label: "Dosage (kg/Ha)", name: "dosage", type: "number", min: 0, placeholder: "180" },
+                        { label: "Application Date", name: "applicationDate", type: "date" }
                     ])}
                 </div>
             `;
+            
+            // Attach listeners to the forms using the correct array reference
+            document.getElementById('form-SeedLot').addEventListener('submit', (e) => handleFormSubmit(e, 'seedLots', seedLots));
+            document.getElementById('form-FertilizerApplication').addEventListener('submit', (e) => handleFormSubmit(e, 'fertilizerApplications', fertilizerApplications));
         }
 
         function renderFormCard(title, icon, description, fields) {
             const formFields = fields.map(field => {
+                const isRequired = field.type !== 'select';
+                let inputHtml = '';
+
                 if (field.type === "select") {
                     const options = field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                    return `
-                        <label class="block text-sm font-medium text-gray-700 mt-3">${field.label}</label>
-                        <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 focus:border-agri-green focus:ring focus:ring-agri-green/50">
+                    inputHtml = `
+                        <select id="${field.name}" name="${field.name}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 focus:border-agri-green focus:ring focus:ring-agri-green/50">
                             ${options}
                         </select>
                     `;
+                } else {
+                    const minMax = (field.min !== undefined ? `min="${field.min}"` : '') + (field.max !== undefined ? `max="${field.max}"` : '');
+                    inputHtml = `
+                        <input id="${field.name}" name="${field.name}" type="${field.type}" placeholder="${field.placeholder || ''}" ${minMax} ${isRequired ? 'required' : ''} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 focus:border-agri-green focus:ring focus:ring-agri-green/50">
+                    `;
                 }
+                
                 return `
-                    <label class="block text-sm font-medium text-gray-700 mt-3">${field.label}</label>
-                    <input type="${field.type}" placeholder="${field.placeholder || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 focus:border-agri-green focus:ring focus:ring-agri-green/50">
+                    <label for="${field.name}" class="block text-sm font-medium text-gray-700 mt-3">${field.label}${isRequired ? '<span class="text-red-500 ml-1">*</span>' : ''}</label>
+                    ${inputHtml}
                 `;
             }).join('');
 
@@ -420,92 +735,100 @@
                         <h3 class="text-xl font-semibold text-agri-dark">${title}</h3>
                     </div>
                     <p class="text-sm text-gray-500 mb-4">${description}</p>
-                    <form onsubmit="event.preventDefault(); alert('Form submitted successfully: ' + '${title}');">
+                    <form id="form-${title}" onsubmit="return false;">
                         ${formFields}
                         <button type="submit" class="mt-6 w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-agri-green hover:bg-agri-dark transition">
-                            Save Record
+                            Save ${title} Record
                         </button>
                     </form>
                 </div>
             `;
         }
-        
-        function renderDesignDocs() {
+
+        function renderRecords() {
             const contentDiv = document.getElementById('page-content');
             contentDiv.innerHTML = `
-                <h2 class="text-3xl font-bold text-agri-dark mb-8">System Design and Modeling Diagrams</h2>
-                <p class="text-gray-600 mb-6">These artifacts provide a technical overview of the system architecture and business logic.</p>
+                <h2 class="text-3xl font-bold text-agri-dark mb-8">All System Records</h2>
+                <div class="flex items-center p-3 mb-6 bg-agri-light rounded-xl shadow-inner text-agri-dark">
+                    <i class="fas fa-database mr-3"></i>
+                    <p class="text-sm font-medium">All records are pulled from your browser's LocalStorage.</p>
+                </div>
 
-                <div class="space-y-8">
-                    ${renderDesignSection('E-R Diagram', 'fas fa-database', 'Illustrates the relationships between core entities: Field, SeedLot, FertilizerBatch, ApplicationRecord, and GrowthObservation.', 'ENTITY (Field) -- 1:M -- ENTITY (ApplicationRecord) -- 1:1 -- ENTITY (FertilizerBatch) etc. Key attributes: Field(ID, Location), SeedLot(LotID, GerminationRate), etc.')}
-                                        
-                    ${renderDesignSection('Use-Case Diagram', 'fas fa-users-cog', 'Shows how different actors (Farmer, Analyst, System) interact with the system functions (Manage Seeds, Track Growth, Generate Report).', 'ACTOR (Farmer) -- uses --> USE CASE (Track Growth). SYSTEM -- includes --> USE CASE (Send Alert).')}
-                    
-                    ${renderDesignSection('Class Diagram', 'fas fa-object-group', 'Defines the static structure of the system, including classes, attributes, and methods.', 'CLASS (Crop) with attributes: Height, HealthScore and methods: calculateGrowthRate(), updateHealth().')}
-                    
-                    ${renderDesignSection('Sequence Diagram', 'fas fa-sort-numeric-up', 'Models the interaction between objects in a time-ordered sequence for a specific scenario, e.g., "Recording a Fertilizer Application".', 'ACTOR (Farmer) -> System: Enter Application Details. System -> Database: SaveRecord(). Database -> System: Confirmation. System -> Farmer: Success Message.')}
-                    
-                    <h3 class="text-2xl font-bold text-agri-dark pt-4">Logic Modeling</h3>
-                    ${renderDesignSection('Decision Table: Growth Alert', 'fas fa-table', 'Defines rules for triggering growth alerts based on two conditions: Growth Rate and Health Score.', 'Condition 1: Growth Rate (High/Medium/Low). Condition 2: Health Score (>80 / <80). Actions: Alert (Yes/No), Recommend Fertilization (Yes/No).')}
-                    
-                    ${renderDesignSection('Decision Tree: Fertilization Recommendation', 'fas fa-code-branch', 'Visualizes the branching logic for suggesting fertilizer types.', 'Root: Soil Type? -> Branch 1 (Loamy): Crop Type? -> Branch 2 (Corn): NPK 10-20-10.')}
-                    
-                    ${renderDesignSection('Activity Diagram: Germination Process', 'fas fa-redo-alt', 'Shows the flow of control from one activity to the next in the germination tracking process.', 'Start Node -> Activity (Plant Seed) -> Fork -> Activity (Monitor Daily) -> Join -> Decision (Threshold Met?) -> End Node.')}
-                                    </div>
+                <!-- Seed Lots Table -->
+                <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                    <h3 class="text-2xl font-semibold text-agri-green mb-4 border-b pb-2">Seed Lots (${seedLots.length} Total)</h3>
+                    ${renderTable(seedLots, 'seedLots')}
+                </div>
+                
+                <!-- Fertilizer Applications Table -->
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-semibold text-agri-green mb-4 border-b pb-2">Fertilizer Applications (${fertilizerApplications.length} Total)</h3>
+                    ${renderTable(fertilizerApplications, 'fertilizerApplications')}
+                </div>
             `;
         }
-        
-        function renderDesignSection(title, icon, summary, content) {
+
+        function renderTable(data, type) {
+            if (data.length === 0) {
+                return `<p class="text-gray-500 italic">No ${type.replace(/([A-Z])/g, ' $1').toLowerCase()} records found. Please use the Data Input Forms to add some.</p>`;
+            }
+
+            let headers = [];
+            if (type === 'seedLots') {
+                headers = ['Seed Type', 'Lot Number', 'Germination Rate (%)', 'Date Acquired', 'Recorded By'];
+            } else if (type === 'fertilizerApplications') {
+                headers = ['Fertilizer Name', 'Field ID', 'Dosage (kg/Ha)', 'Application Date', 'Recorded By'];
+            }
+
+            const headerHtml = headers.map(h => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h}</th>`).join('');
+
+            const rowHtml = data.map(doc => {
+                let fields = [];
+                if (type === 'seedLots') {
+                    fields = [
+                        doc.seedType,
+                        doc.lotNumber,
+                        doc.germinationRate,
+                        doc.dateAcquired,
+                        doc.recordedBy
+                    ];
+                } else if (type === 'fertilizerApplications') {
+                    fields = [
+                        doc.fertilizerName,
+                        doc.fieldId,
+                        doc.dosage,
+                        doc.applicationDate,
+                        doc.recordedBy
+                    ];
+                }
+
+                const cellHtml = fields.map(f => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${f || 'N/A'}</td>`).join('');
+                
+                return `<tr class="hover:bg-gray-50">${cellHtml}</tr>`;
+            }).join('');
+
             return `
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <i class="${icon} text-xl text-agri-green"></i>
-                        <h3 class="text-xl font-semibold text-agri-dark">${title}</h3>
-                    </div>
-                    <p class="text-gray-600 text-sm italic mb-3">${summary}</p>
-                    <pre class="bg-agri-light p-4 rounded-lg overflow-x-auto text-agri-dark text-xs whitespace-pre-wrap">${content}</pre>
+                <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                ${headerHtml}
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${rowHtml}
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
 
         function renderReports() {
             const reportSections = [
-                {
-                    title: "1. Introduction", 
-                    content: "The Seeds and Fertilizer Management System (SFMS) is designed to optimize agricultural inputs and monitoring. By centralized data on seed quality, fertilizer application, and daily growth metrics, SFMS aims to empower farmers with data-driven decision-making, moving away from traditional guesswork."
-                },
-                {
-                    title: "2. Problem Definition", 
-                    content: "Current farming practices suffer from inefficient resource allocation, leading to suboptimal yields and unnecessary environmental impact. Lack of detailed historical data makes predictive analysis impossible. The problem SFMS addresses is the fragmented, manual, and reactive nature of managing crop inputs and monitoring growth."
-                },
-                {
-                    title: "3. System Scope and Objectives", 
-                    content: "SFMS will cover the entire crop cycle: from pre-planting seed lot analysis to post-harvest yield comparison. Key objectives include achieving a 10% reduction in fertilizer waste, a 5% increase in average crop yield, and providing real-time growth alerts via a centralized dashboard."
-                },
-                {
-                    title: "4. Feasibility Study", 
-                    content: "Technologically, the system is feasible using standard web technologies (HTML/JS/Tailwind) and available cloud database services (simulated). Economically, the ROI is high due to predicted savings on inputs. Operationally, the intuitive interface ensures quick adoption by farm managers and staff."
-                },
-                {
-                    title: "5. Requirement Analysis", 
-                    content: "Functional Requirements: User authentication, Seed Lot CRUD, Fertilizer Application recording, Growth Metric input, Chart Generation, Report Export. Non-Functional Requirements: Response time < 2s for all dashboard loads, 99.9% uptime, and full mobile responsiveness."
-                },
-                {
-                    title: "6. Testing & Implementation Plan", 
-                    content: "Testing will follow a four-stage approach: Unit testing for individual functions (e.g., growth rate calculation), Integration testing for form-to-database flow, User Acceptance Testing (UAT) with pilot farmers, and finally, deployment to a live environment after successful UAT."
-                },
-                {
-                    title: "7. Limitations and Constraints", 
-                    content: "The current system relies on manual data input for physical measurements (e.g., height, leaf count). It does not currently integrate with IoT sensors for automated data collection. The fertilizer recommendation model is simplified and requires calibration for specific local soil chemistries."
-                },
-                {
-                    title: "8. Enhancements (Future Scope)", 
-                    content: "Future enhancements include: full mobile application development, integration with drone imagery for automated health scoring, AI-driven predictive modeling for pest risk, and multi-lingual support for international farming operations."
-                },
-                {
-                    title: "9. Bibliography", 
-                    content: "[1] Smith, J. (2023). 'The Future of Digital Agriculture.' AgriTech Journal, 15(2), 45-60. [2] FAO. (2022). Guidelines for Sustainable Fertilizer Use. Rome: FAO Publications. [3] Tailwind CSS Documentation. (Current Version)."
-                },
+                { title: "1. Introduction", content: "The Seeds and Fertilizer Management System (SFMS) is now running as a pure client-side application using JavaScript." },
+                { title: "2. Data Flow and Storage", content: "All application data, including farm records, shopping cart contents, and order history, is stored entirely in the browser's `localStorage`. This provides persistence across sessions but is not shared between different browsers or devices." },
+                { title: "3. Simulated Functionality", content: "The Marketplace, Cart management, and Checkout process are fully simulated using client-side logic. The payment process includes a mock 90% success rate, clearing the cart and creating a new order record in `localStorage` upon success." },
+                { title: "4. Technical Stack", content: "The system is built using HTML5, Tailwind CSS for aesthetics and responsiveness, and Vanilla JavaScript for all logic, state management, and DOM manipulation. Chart visualization is handled by Chart.js." },
             ];
             
             const sectionsHTML = reportSections.map(section => `
@@ -517,17 +840,47 @@
 
             const contentDiv = document.getElementById('page-content');
             contentDiv.innerHTML = `
-                <h2 class="text-3xl font-bold text-agri-dark mb-4">System Analysis and Design Report</h2>
-                <p class="text-gray-600 mb-8 italic">Comprehensive documentation for the Seeds and Fertilizer Management System (SFMS)</p>
+                <h2 class="text-3xl font-bold text-agri-dark mb-4">System Analysis and Design Report (Frontend Only)</h2>
+                <p class="text-gray-600 mb-8 italic">Focusing on Client-Side Implementation and LocalStorage</p>
                 
                 <div class="bg-white p-8 rounded-xl shadow-2xl">
                     ${sectionsHTML}
+                    <div class="text-center mt-8">
+                        <i class="fas fa-database text-4xl text-agri-yellow"></i>
+                        <p class="text-sm text-gray-500 mt-2">Diagram: Data Flow (Local Storage)</p>
+                        
+                    </div>
                 </div>
             `;
         }
 
+        // --- UI Feedback and Navigation ---
 
-        // --- Navigation and Initialization ---
+        let currentPage = PAGES.DASHBOARD;
+        let timeoutId;
+
+        function alertMessage(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            if (!alertContainer) return;
+            
+            clearTimeout(timeoutId);
+
+            const colorMap = {
+                'success': 'bg-green-100 text-green-800 border-green-400',
+                'error': 'bg-red-100 text-red-800 border-red-400'
+            };
+
+            alertContainer.innerHTML = `
+                <div class="p-3 border-l-4 rounded-lg ${colorMap[type]} transition-opacity duration-300" role="alert">
+                    <p class="font-bold">${type.toUpperCase()}</p>
+                    <p>${message}</p>
+                </div>
+            `;
+
+            timeoutId = setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
 
         function renderPage(pageName) {
             const pageContent = document.getElementById('page-content');
@@ -535,12 +888,12 @@
             
             // Update active state in sidebar
             navItems.forEach(item => {
+                item.classList.add('p-3', 'rounded-lg', 'cursor-pointer', 'transition', 'hover:bg-green-700');
                 if (item.dataset.page === pageName) {
                     item.classList.add('bg-agri-green', 'font-bold');
                     item.classList.remove('hover:bg-green-700');
                 } else {
                     item.classList.remove('bg-agri-green', 'font-bold');
-                    item.classList.add('hover:bg-green-700');
                 }
             });
 
@@ -553,26 +906,35 @@
                 case PAGES.DASHBOARD:
                     renderDashboard();
                     break;
+                case PAGES.MARKETPLACE:
+                    renderMarketplace();
+                    break;
+                case PAGES.CART:
+                    renderCart();
+                    break;
                 case PAGES.FORMS:
                     renderForms();
                     break;
+                case PAGES.RECORDS:
+                    renderRecords();
+                    break;
+                case PAGES.ORDERS:
+                    renderOrders();
+                    break;
                 case PAGES.REPORTS:
                     renderReports();
-                    break;
-                case PAGES.DESIGN_DOCS:
-                    renderDesignDocs();
                     break;
                 default:
                     pageContent.innerHTML = `<h2 class="text-3xl font-bold text-red-500">404: Page Not Found</h2>`;
             }
 
             currentPage = pageName;
+            updateCartCount(); // Ensure the count is always updated after page render
         }
 
-        function init() {
+        function initApp() {
             // Set up navigation listeners
             document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.add('p-3', 'rounded-lg', 'cursor-pointer', 'transition');
                 item.addEventListener('click', (e) => {
                     const page = e.currentTarget.dataset.page;
                     window.history.pushState({ page: page }, '', `#${page}`);
@@ -587,19 +949,18 @@
                 sidebar.classList.toggle('open');
             });
             
-            // Initial page load based on URL hash or default to dashboard
-            const initialPage = window.location.hash.substring(1) || PAGES.DASHBOARD;
-            renderPage(initialPage);
-            
             // Handle browser back/forward buttons
             window.addEventListener('popstate', (e) => {
                 const page = e.state ? e.state.page : PAGES.DASHBOARD;
                 renderPage(page);
             });
+            
+            // Initial render
+            renderPage(window.location.hash.substring(1) || PAGES.DASHBOARD);
         }
 
         // Start the application
-        window.onload = init;
+        window.onload = initApp;
     </script>
 </body>
 </html>
